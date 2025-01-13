@@ -20,23 +20,6 @@ struct Claims {
     body_hash: String,
 }
 
-/// Fireblocks Api Url, the different URLs correspond with different functionalities
-/// Documentation https://developers.fireblocks.com/reference/signing-a-request-jwt-structure
-#[derive(Debug, Clone)]
-enum FireblocksApiUrl {
-    Sandbox,
-    MainnetTestnet,
-}
-
-impl FireblocksApiUrl {
-    fn value(&self) -> &str {
-        match self {
-            FireblocksApiUrl::Sandbox => "https://sandbox-api.fireblocks.io/v1",
-            FireblocksApiUrl::MainnetTestnet => "https://api.fireblocks.io/v1",
-        }
-    }
-}
-
 // TODO: use zeroize/secrecy
 #[derive(Debug, Clone)]
 /// Fireblocks Client
@@ -45,8 +28,8 @@ pub struct FireblocksClient {
     private_key: String,
     /// API Key provided by fireblocks
     api_key: String,
-    /// Fireblocks Api Url this is in the form of Sandbox or MainnetTestnet
-    api_url: FireblocksApiUrl,
+    /// Fireblocks API Base Url this is in the form of Sandbox or MainnetTestnet
+    api_url: ApiBaseUrl,
 }
 
 impl std::fmt::Debug for FireblocksClient {
@@ -61,11 +44,7 @@ impl std::fmt::Debug for FireblocksClient {
 
 impl FireblocksClient {
     /// Instantiates a new Fireblocks Client to access the API
-    pub async fn new(
-        private_key: String,
-        api_key: String,
-        api_url: FireblocksApiUrl,
-    ) -> Result<Self> {
+    pub async fn new(private_key: String, api_key: String, api_url: ApiBaseUrl) -> Result<Self> {
         Ok(FireblocksClient {
             private_key,
             api_key,

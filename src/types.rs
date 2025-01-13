@@ -324,3 +324,442 @@ pub struct NCW {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub wallet_id: Option<String>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(non_camel_case_types)]
+pub enum ChainId {
+    MAINNET = 1,
+    ROPSTEN = 3,
+    KOVAN = 42,
+    GOERLI = 5,
+    RINKEBY = 4,
+    SEPOLIA = 11155111,
+    HOLESKY = 17000,
+    BSC = 56,
+    BSC_TEST = 97,
+    POLYGON = 137,
+    POLYGON_TEST = 80001,
+    POLYGON_AMOY = 80002,
+    AVALANCHE = 43114,
+    AVALANCHE_TEST = 43113,
+    MOONRIVER = 1285,
+    MOONBEAM = 1284,
+    SONGBIRD = 19,
+    ARBITRUM = 42161,
+    ARBITRUM_SEPOLIA = 421614,
+    ARBITRUM_RIN = 421611,
+    FANTOM = 250,
+    RSK = 30,
+    RSK_TEST = 31,
+    CELO = 42220,
+    CELO_BAK = 62320,
+    CELO_ALF = 44787,
+    OPTIMISM = 10,
+    OPTIMISM_SEPOLIA = 11155420,
+    OPTIMISM_KOVAN = 69,
+    RONIN = 2020,
+    CANTO = 7700,
+    CANTO_TEST = 7701,
+    POLYGON_ZKEVM_TEST = 1442,
+    POLYGON_ZKEVM = 1101,
+    KAVA = 2222,
+    SMARTBCH = 10000,
+    SMARTBCH_TEST = 10001,
+    HECO = 128,
+    AURORA = 1313161554,
+    RISEOFTHEWARBOTSTESTNET = 7777,
+    EVMOS = 9001,
+    ASTAR = 592,
+    VELAS = 106,
+    ARB_GOERLI = 421613,
+    XDC = 50,
+    BASE = 8453,
+    BASE_SEPOLIA = 84532,
+    IVAR = 88888,
+    JOC = 81,
+    OASYS = 248,
+    SHIMMEREVM = 148,
+    LINEA = 59144,
+    LINEA_TEST = 59140,
+    FLARE = 14,
+    MANTLE = 5000,
+    MANTLE_TEST = 5001,
+    BLAST = 81457,
+    SONEIUM_MINATO = 1946,
+    LACHAIN = 274,
+}
+
+/// Fireblocks Base Api Url
+/// Documentation https://developers.fireblocks.com/reference/signing-a-request-jwt-structure
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ApiBaseUrl {
+    Production,
+    Sandbox,
+    EU,
+    EU2,
+}
+
+impl ApiBaseUrl {
+    /// Returns the API Base URL value
+    pub fn value(&self) -> &str {
+        match self {
+            ApiBaseUrl::Production => "https://api.fireblocks.io",
+            ApiBaseUrl::Sandbox => "https://sandbox-api.fireblocks.io",
+            ApiBaseUrl::EU => "https://eu-api.fireblocks.io/v1",
+            ApiBaseUrl::EU2 => "https://eu2-api.fireblocks.io/v1",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+/// Asset data
+pub struct Asset {
+    pub asset_id: String,
+    pub rpc_url: String,
+}
+
+impl Asset {
+    /// Get Asset via ChainId
+    pub fn get_by_chain_id(chain_id: ChainId) -> Self {
+        match chain_id {
+            ChainId::MAINNET => Asset {
+                asset_id: "ETH".to_string(),
+                rpc_url: "https://cloudflare-eth.com".to_string(),
+            },
+            ChainId::ROPSTEN => Asset {
+                asset_id: "ETH_TEST".to_string(),
+                rpc_url: "https://rpc.ankr.com/eth_ropsten".to_string(),
+            },
+            ChainId::KOVAN => Asset {
+                asset_id: "ETH_TEST2".to_string(),
+                rpc_url: "https://kovan.poa.network".to_string(),
+            },
+            ChainId::GOERLI => Asset {
+                asset_id: "ETH_TEST3".to_string(),
+                rpc_url: "https://rpc.ankr.com/eth_goerli".to_string(),
+            },
+            ChainId::RINKEBY => Asset {
+                asset_id: "ETH_TEST4".to_string(),
+                rpc_url: "https://rpc.ankr.com/eth_rinkeby".to_string(),
+            },
+            ChainId::SEPOLIA => Asset {
+                asset_id: "ETH_TEST5".to_string(),
+                rpc_url: "https://rpc.sepolia.org".to_string(),
+            },
+            ChainId::HOLESKY => Asset {
+                asset_id: "ETH_TEST6".to_string(),
+                rpc_url: "https://ethereum-holesky-rpc.publicnode.com".to_string(),
+            },
+            ChainId::BSC => Asset {
+                asset_id: "BNB_BSC".to_string(),
+                rpc_url: "https://bsc-dataseed.binance.org".to_string(),
+            },
+            ChainId::BSC_TEST => Asset {
+                asset_id: "BNB_TEST".to_string(),
+                rpc_url: "https://data-seed-prebsc-1-s1.binance.org:8545".to_string(),
+            },
+            ChainId::POLYGON => Asset {
+                asset_id: "MATIC_POLYGON".to_string(),
+                rpc_url: "https://polygon-rpc.com".to_string(),
+            },
+            ChainId::POLYGON_TEST => Asset {
+                asset_id: "MATIC_POLYGON_MUMBAI".to_string(),
+                rpc_url: "https://rpc-mumbai.maticvigil.com".to_string(),
+            },
+            ChainId::POLYGON_AMOY => Asset {
+                asset_id: "AMOY_POLYGON_TEST".to_string(),
+                rpc_url: "https://rpc-amoy.polygon.technology".to_string(),
+            },
+            ChainId::AVALANCHE => Asset {
+                asset_id: "AVAX".to_string(),
+                rpc_url: "https://api.avax.network/ext/bc/C/rpc".to_string(),
+            },
+            ChainId::AVALANCHE_TEST => Asset {
+                asset_id: "AVAXTEST".to_string(),
+                rpc_url: "https://api.avax-test.network/ext/bc/C/rpc".to_string(),
+            },
+            ChainId::MOONRIVER => Asset {
+                asset_id: "MOVR_MOVR".to_string(),
+                rpc_url: "https://rpc.moonriver.moonbeam.network".to_string(),
+            },
+            ChainId::MOONBEAM => Asset {
+                asset_id: "GLMR_GLMR".to_string(),
+                rpc_url: "https://rpc.api.moonbeam.network".to_string(),
+            },
+            ChainId::SONGBIRD => Asset {
+                asset_id: "SGB".to_string(),
+                rpc_url: "https://songbird.towolabs.com/rpc".to_string(),
+            },
+            ChainId::ARBITRUM => Asset {
+                asset_id: "ETH-AETH".to_string(),
+                rpc_url: "https://rpc.ankr.com/arbitrum".to_string(),
+            },
+            ChainId::ARBITRUM_SEPOLIA => Asset {
+                asset_id: "ETH-AETH_SEPOLIA".to_string(),
+                rpc_url: "https://sepolia-rollup.arbitrum.io/rpc".to_string(),
+            },
+            ChainId::ARBITRUM_RIN => Asset {
+                asset_id: "ETH-AETH-RIN".to_string(),
+                rpc_url: "https://rinkeby.arbitrum.io/rpc".to_string(),
+            },
+            ChainId::FANTOM => Asset {
+                asset_id: "FTM_FANTOM".to_string(),
+                rpc_url: "https://rpc.ftm.tools/".to_string(),
+            },
+            ChainId::RSK => Asset {
+                asset_id: "RBTC".to_string(),
+                rpc_url: "https://public-node.rsk.co".to_string(),
+            },
+            ChainId::RSK_TEST => Asset {
+                asset_id: "RBTC_TEST".to_string(),
+                rpc_url: "https://public-node.testnet.rsk.co".to_string(),
+            },
+            ChainId::CELO => Asset {
+                asset_id: "CELO".to_string(),
+                rpc_url: "https://rpc.ankr.com/celo".to_string(),
+            },
+            ChainId::CELO_BAK => Asset {
+                asset_id: "CELO_BAK".to_string(),
+                rpc_url: "https://baklava-blockscout.celo-testnet.org/api/eth-rpc".to_string(),
+            },
+            ChainId::CELO_ALF => Asset {
+                asset_id: "CELO_ALF".to_string(),
+                rpc_url: "https://alfajores-forno.celo-testnet.org/api/eth-rpc".to_string(),
+            },
+            ChainId::OPTIMISM => Asset {
+                asset_id: "ETH-OPT".to_string(),
+                rpc_url: "https://rpc.ankr.com/optimism".to_string(),
+            },
+            ChainId::OPTIMISM_KOVAN => Asset {
+                asset_id: "ETH-OPT_KOV".to_string(),
+                rpc_url: "https://kovan.optimism.io/".to_string(),
+            },
+            ChainId::OPTIMISM_SEPOLIA => Asset {
+                asset_id: "ETH-OPT_SEPOLIA".to_string(),
+                rpc_url: "https://sepolia.optimism.io/".to_string(),
+            },
+            ChainId::RONIN => Asset {
+                asset_id: "RON".to_string(),
+                rpc_url: "https://api.roninchain.com/rpc".to_string(),
+            },
+            ChainId::CANTO => Asset {
+                asset_id: "CANTO".to_string(),
+                rpc_url: "https://canto.gravitychain.io".to_string(),
+            },
+            ChainId::CANTO_TEST => Asset {
+                asset_id: "CANTO_TEST".to_string(),
+                rpc_url: "https://testnet-archive.plexnode.wtf".to_string(),
+            },
+            ChainId::POLYGON_ZKEVM => Asset {
+                asset_id: "ETH_ZKEVM".to_string(),
+                rpc_url: "https://zkevm-rpc.com".to_string(),
+            },
+            ChainId::POLYGON_ZKEVM_TEST => Asset {
+                asset_id: "ETH_ZKEVM_TEST".to_string(),
+                rpc_url: "https://rpc.public.zkevm-test.net".to_string(),
+            },
+            ChainId::KAVA => Asset {
+                asset_id: "KAVA_KAVA".to_string(),
+                rpc_url: "https://evm.kava.io".to_string(),
+            },
+            ChainId::SMARTBCH => Asset {
+                asset_id: "SMARTBCH".to_string(),
+                rpc_url: "https://smartbch.greyh.at".to_string(),
+            },
+            ChainId::SMARTBCH_TEST => Asset {
+                asset_id: "ETHW".to_string(),
+                rpc_url: "https://rpc-testnet.smartbch.org".to_string(),
+            },
+            ChainId::HECO => Asset {
+                asset_id: "HT_CHAIN".to_string(),
+                rpc_url: "https://http-mainnet.hecochain.com".to_string(),
+            },
+            ChainId::AURORA => Asset {
+                asset_id: "AURORA_DEV".to_string(),
+                rpc_url: "https://mainnet.aurora.dev".to_string(),
+            },
+            ChainId::RISEOFTHEWARBOTSTESTNET => Asset {
+                asset_id: "TKX".to_string(),
+                rpc_url: "https://testnet1.rotw.games".to_string(),
+            },
+            ChainId::EVMOS => Asset {
+                asset_id: "EVMOS".to_string(),
+                rpc_url: "https://eth.bd.evmos.org".to_string(),
+            },
+            ChainId::ASTAR => Asset {
+                asset_id: "ASTR_ASTR".to_string(),
+                rpc_url: "https://evm.astar.network".to_string(),
+            },
+            ChainId::VELAS => Asset {
+                asset_id: "VLX_VLX".to_string(),
+                rpc_url: "https://evmexplorer.velas.com/rpc".to_string(),
+            },
+            ChainId::ARB_GOERLI => Asset {
+                asset_id: "ETH-AETH_GOERLI".to_string(),
+                rpc_url: "https://endpoints.omniatech.io/v1/arbitrum/goerli/public".to_string(),
+            },
+            ChainId::XDC => Asset {
+                asset_id: "XDC".to_string(),
+                rpc_url: "https://rpc.xdcrpc.com".to_string(),
+            },
+            ChainId::BASE => Asset {
+                asset_id: "BASECHAIN_ETH".to_string(),
+                rpc_url: "https://mainnet.base.org".to_string(),
+            },
+            ChainId::BASE_SEPOLIA => Asset {
+                asset_id: "BASECHAIN_ETH_TEST5".to_string(),
+                rpc_url: "https://sepolia.base.org".to_string(),
+            },
+            ChainId::IVAR => Asset {
+                asset_id: "CHZ_CHZ2".to_string(),
+                rpc_url: "https://mainnet-rpc.ivarex.com".to_string(),
+            },
+            ChainId::JOC => Asset {
+                asset_id: "ASTR_TEST".to_string(),
+                rpc_url: "https://rpc-1.japanopenchain.org:8545".to_string(),
+            },
+            ChainId::OASYS => Asset {
+                asset_id: "OAS".to_string(),
+                rpc_url: "https://oasys.blockpi.network/v1/rpc/public".to_string(),
+            },
+            ChainId::SHIMMEREVM => Asset {
+                asset_id: "SMR_SMR".to_string(),
+                rpc_url: "https://json-rpc.evm.shimmer.network".to_string(),
+            },
+            ChainId::LINEA => Asset {
+                asset_id: "LINEA".to_string(),
+                rpc_url: "https://rpc.linea.build".to_string(),
+            },
+            ChainId::LINEA_TEST => Asset {
+                asset_id: "LINEA_TEST".to_string(),
+                rpc_url: "https://rpc.goerli.linea.build".to_string(),
+            },
+            ChainId::FLARE => Asset {
+                asset_id: "FLR".to_string(),
+                rpc_url: "https://flare-api.flare.network/ext/C/rpc".to_string(),
+            },
+            ChainId::MANTLE => Asset {
+                asset_id: "MANTLE".to_string(),
+                rpc_url: "https://rpc.mantle.xyz".to_string(),
+            },
+            ChainId::MANTLE_TEST => Asset {
+                asset_id: "MANTLE_TEST".to_string(),
+                rpc_url: "https://rpc.testnet.mantle.xyz".to_string(),
+            },
+            ChainId::BLAST => Asset {
+                asset_id: "BLAST".to_string(),
+                rpc_url: "https://rpc.ankr.com/blast".to_string(),
+            },
+            ChainId::SONEIUM_MINATO => Asset {
+                asset_id: "SONEIUM_MINATO_TEST".to_string(),
+                rpc_url: "https://rpc.minato.soneium.org/".to_string(),
+            },
+            ChainId::LACHAIN => Asset {
+                asset_id: "LAC".to_string(),
+                rpc_url: "https://rpc1.mainnet.lachain.network".to_string(),
+            },
+        }
+    }
+
+    /// Method to update the RPC URL in case of custom RPCs
+    pub fn set_rpc_url(&mut self, new_url: String) {
+        self.rpc_url = new_url;
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum RawMessageType {
+    EIP712,
+    #[allow(non_camel_case_types)]
+    ETH_MESSAGE,
+}
+
+impl RawMessageType {
+    /// Returns the str Value for FeeLevel
+    pub fn value(&self) -> &str {
+        match self {
+            RawMessageType::EIP712 => "EIP712",
+            RawMessageType::ETH_MESSAGE => "ETH_MESSAGE",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum FeeLevel {
+    HIGH,
+    MEDIUM,
+    LOW,
+}
+
+impl FeeLevel {
+    /// Returns the str Value for FeeLevel
+    pub fn value(&self) -> &str {
+        match self {
+            FeeLevel::HIGH => "HIGH",
+            FeeLevel::MEDIUM => "MEDIUM",
+            FeeLevel::LOW => "LOW",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FireblocksProviderConfig {
+    // Mandatory fields
+    pub api_key: String,
+    pub private_key: String,
+    pub chain_id: Option<ChainId>,
+    pub rpc_url: Option<String>,
+
+    // Optional fields
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub vault_account_ids: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub api_base_url: Option<ApiBaseUrl>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fallback_fee_level: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub note: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub polling_interval: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub one_time_addresses_enabled: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub external_tx_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub user_agent: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub asset_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub log_transaction_status_changes: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub log_requests_and_responses: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub enhanced_error_handling: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub gasless_gas_tank_vault_id: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub proxy_path: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RequestArguments<T> {
+    pub method: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub params: Option<T>,
+}
+
+#[derive(Debug)]
+pub struct ProviderRpcError {
+    pub message: String,
+    pub code: i32,
+    pub data: Option<String>,
+    pub payload: RequestArguments<serde_json::Value>,
+}
+
+impl std::error::Error for ProviderRpcError {}
+
+impl std::fmt::Display for ProviderRpcError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "RPC Error {}: {}", self.code, self.message)
+    }
+}
