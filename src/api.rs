@@ -5,10 +5,8 @@ use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_TYPE};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use uuid::Uuid;
-use tokio::fs;
-use tokio::io;
 
-const EXPIRY: u64 = 30;
+const EXPIRY: i64 = 30;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -22,21 +20,60 @@ struct Claims {
     body_hash: String,
 }
 
-pub struct ApiTokenProvider {
-    private_key: String,
-    api_key: String,
-    api_url: String, // Added api_url field
+/// Fireblocks Api Url, the different URLs correspond with different functionalities
+/// Documentation https://developers.fireblocks.com/reference/signing-a-request-jwt-structure
+#[derive(Debug, Clone)]
+enum FireblocksApiUrl {
+    Sandbox,
+    MainnetTestnet,
 }
 
-impl ApiTokenProvider {
-    pub async fn new(private_key: String, api_key: String, api_url: String) -> io::Result<Self> {
-        Ok(ApiTokenProvider {
+impl FireblocksApiUrl {
+    fn value(&self) -> &str {
+        match self {
+            FireblocksApiUrl::Sandbox => "https://sandbox-api.fireblocks.io/v1",
+            FireblocksApiUrl::MainnetTestnet => "https://api.fireblocks.io/v1",
+        }
+    }
+}
+
+// TODO: use zeroize/secrecy
+#[derive(Debug, Clone)]
+/// Fireblocks Client
+pub struct FireblocksClient {
+    /// RSA private key provided by fireblocks
+    private_key: String,
+    /// API Key provided by fireblocks
+    api_key: String,
+    /// Fireblocks Api Url this is in the form of Sandbox or MainnetTestnet
+    api_url: FireblocksApiUrl,
+}
+
+impl std::fmt::Debug for FireblocksClient {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("FireblocksClient")
+            .field("private_key", &"[REDACTED]")
+            .field("api_key", &"[REDACTED]")
+            .field("api_url", &self.api_url.value())
+            .finish()
+    }
+}
+
+impl FireblocksClient {
+    /// Instantiates a new Fireblocks Client to access the API
+    pub async fn new(
+        private_key: String,
+        api_key: String,
+        api_url: FireblocksApiUrl,
+    ) -> Result<Self> {
+        Ok(FireblocksClient {
             private_key,
             api_key,
             api_url,
         })
     }
 
+    /// Signs a JWT to be attached in the Authorization header
     pub fn sign_jwt(
         &self,
         path: &str,
@@ -53,7 +90,7 @@ impl ApiTokenProvider {
             uri: path.to_owned(),
             nonce,
             iat: now,
-            exp: now + 30, // Adjusted to ensure it's within the required timeframe
+            exp: now + EXPIRY, // Adjusted to ensure it's within the required timeframe
             sub: self.api_key.clone(),
             body_hash,
         };
@@ -64,36 +101,6 @@ impl ApiTokenProvider {
             &EncodingKey::from_rsa_pem(self.private_key.as_bytes())?,
         )?;
         Ok(token)
-    }
-
-    pub async fn get_request(&self, path: &str) -> Result<String, Box<dyn std::error::Error>> {
-        let token = self.sign_jwt(path, None)?;
-
-        let client = reqwest::Client::new();
-        let mut headers = HeaderMap::new();
-        headers.insert(
-            AUTHORIZATION,
-            HeaderValue::from_str(&format!("Bearer {}", token))?,
-        );
-        headers.insert("X-API-Key", HeaderValue::from_str(&self.api_key)?);
-
-        // Make the GET request
-        let response = client
-            .get(self.api_url.to_owned() + path) // Use api_url here
-            .headers(headers)
-            .send()
-            .await?;
-
-        // Check response status and return result
-        if response.status().is_success() {
-            let response_text = response.text().await?;
-            Ok(response_text)
-        } else {
-            Err(format!(
-                "GET Request failed with status: {}",
-                response.status()
-            ))?
-        }
     }
 
     pub async fn get_vaults(
@@ -181,42 +188,7 @@ impl ApiTokenProvider {
         Ok(res)
     }
 
-    pub async fn post_request(
-        &self,
-        path: &str,
-        body: &str,
-    ) -> Result<String, Box<dyn std::error::Error>> {
-        let token = self.sign_jwt(path, Some(body))?;
-
-        let client = reqwest::Client::new();
-        let mut headers = HeaderMap::new();
-        headers.insert(
-            AUTHORIZATION,
-            HeaderValue::from_str(&format!("Bearer {}", token))?,
-        );
-        headers.insert("X-API-Key", HeaderValue::from_str(&self.api_key)?);
-
-        // Make the POST request
-        let response = client
-            .post(self.api_url.to_owned() + path) // Use api_url here
-            .headers(headers)
-            .header(CONTENT_TYPE, "application/json") // Set Content-Type header
-            .body(body.to_string())
-            .send()
-            .await?;
-
-        // Check response status and return result
-        if response.status().is_success() {
-            let response_text = response.text().await?;
-            Ok(response_text)
-        } else {
-            Err(format!(
-                "POST Request failed with status: {}",
-                response.status()
-            ))?
-        }
-    }
-
+    /// Get updated vault information
     pub async fn refresh_vault(
         &self,
         vault_id: &str,
@@ -231,6 +203,7 @@ impl ApiTokenProvider {
         Ok(refresh_res)
     }
 
+    /// Creates a new vault
     pub async fn create_vault(
         &self,
         name: &str,
@@ -252,6 +225,8 @@ impl ApiTokenProvider {
         let create_vault_res: VaultAccountResponse = serde_json::from_str(&res)?;
         Ok(create_vault_res)
     }
+
+    /// Creates and broadcasts a transaction
     pub async fn create_tx(
         &self,
         tx_args: &TransactionArguments,
@@ -263,5 +238,73 @@ impl ApiTokenProvider {
         let create_tx_response: CreateTransactionResponse = serde_json::from_str(&res)?;
         println!("Create transaction response:\n{:#?}", create_tx_response);
         Ok(create_tx_response)
+    }
+
+    /// Helper function for GET requests
+    pub async fn get_request(&self, path: &str) -> Result<String, Box<dyn std::error::Error>> {
+        let token = self.sign_jwt(path, None)?;
+
+        let client = reqwest::Client::new();
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            AUTHORIZATION,
+            HeaderValue::from_str(&format!("Bearer {}", token))?,
+        );
+        headers.insert("X-API-Key", HeaderValue::from_str(&self.api_key)?);
+
+        // Make the GET request
+        let response = client
+            .get(format!("{}{}", self.api_url.value(), path)) // Use api_url here
+            .headers(headers)
+            .send()
+            .await?;
+
+        // Check response status and return result
+        if response.status().is_success() {
+            let response_text = response.text().await?;
+            Ok(response_text)
+        } else {
+            Err(format!(
+                "GET Request failed with status: {}",
+                response.status()
+            ))?
+        }
+    }
+
+    /// Helper function for POST requests
+    pub async fn post_request(
+        &self,
+        path: &str,
+        body: &str,
+    ) -> Result<String, Box<dyn std::error::Error>> {
+        let token = self.sign_jwt(path, Some(body))?;
+
+        let client = reqwest::Client::new();
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            AUTHORIZATION,
+            HeaderValue::from_str(&format!("Bearer {}", token))?,
+        );
+        headers.insert("X-API-Key", HeaderValue::from_str(&self.api_key)?);
+
+        // Make the POST request
+        let response = client
+            .post(format!("{}{}", self.api_url.value(), path)) // Use api_url here
+            .headers(headers)
+            .header(CONTENT_TYPE, "application/json") // Set Content-Type header
+            .body(body.to_string())
+            .send()
+            .await?;
+
+        // Check response status and return result
+        if response.status().is_success() {
+            let response_text = response.text().await?;
+            Ok(response_text)
+        } else {
+            Err(format!(
+                "POST Request failed with status: {}",
+                response.status()
+            ))?
+        }
     }
 }

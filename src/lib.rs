@@ -1,16 +1,10 @@
-mod jwtclient;
 mod types;
+use alloy_core::primitives::Address;
 use types::{TransactionArguments, TransactionDetails, TransactionStatus};
 
 mod api;
 use api::FireblocksClient;
 
-mod signer;
-
-mod middleware;
-pub use middleware::FireblocksMiddleware;
-
-use ethers_core::types::Address;
 use jsonwebtoken::EncodingKey;
 use std::{collections::HashMap, time::Instant};
 use thiserror::Error;
@@ -20,18 +14,6 @@ pub(crate) type Result<T> = std::result::Result<T, FireblocksError>;
 #[derive(Debug, Error)]
 /// Fireblocks API related errors
 pub enum FireblocksError {
-    #[error(transparent)]
-    /// Thrown when JWT signing fails
-    JwtError(#[from] jwtclient::JwtError),
-
-    #[error(transparent)]
-    /// Thrown when we cannot parse the RSA PEM file
-    JwtParseError(#[from] jsonwebtoken::errors::Error),
-
-    #[error(transparent)]
-    /// Thrown when we cannot find the RSA PEM file
-    IoError(#[from] std::io::Error),
-
     #[error(transparent)]
     /// Thrown when submitting a POST/GET request fails
     ReqwestError(#[from] reqwest::Error),
@@ -55,18 +37,11 @@ pub enum FireblocksError {
     ParseError(String),
 
     #[error("Timed out while waiting for user to approve transaction")]
+    /// Thrown when the transaction isn't approved on time
     Timeout,
 }
 
 #[derive(Debug, Clone)]
-/// FireblocksSigner is a [`Signer`](ethers_signers::Signer) which utilizes Fireblocks'
-/// MPC signing over its [API](https://docs.fireblocks.io/api) instead of a local private key.
-///
-/// Note: Using FireblocksSigner as a signer WILL NOT take advantage of Fireblock's contextual
-/// policy engine and will only use the RAW signing functionalities.
-///
-/// Consider using [`FireblocksMiddleware`](crate::FireblocksMiddleware) to have an integrated
-/// ethers [`Middleware`](eters_middleware::Middleware) experience.
 pub struct FireblocksSigner {
     fireblocks: FireblocksClient,
     account_ids: HashMap<Address, String>,
