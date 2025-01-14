@@ -1,3 +1,5 @@
+#![allow(dead_code, non_camel_case_types)]
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -12,22 +14,23 @@ pub struct VaultAccountPaginatedResponse {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct VaultAccountResponse {
-    id: String,
-    name: String,
+    pub id: String,
+    pub name: String,
     #[serde(rename = "hiddenOnUI")]
-    hidden_on_ui: bool,
-    assets: Vec<AssetResponse>,
-    customer_ref_id: Option<String>,
-    auto_fuel: bool,
+    pub hidden_on_ui: bool,
+    pub assets: Vec<AssetResponse>,
+    pub customer_ref_id: Option<String>,
+    pub auto_fuel: bool,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PagedVaultAccountsResponse {
-    accounts: Vec<VaultAccountResponse>,
-    paging: Option<Paging>,
-    previous_url: Option<String>,
-    next_url: Option<String>,
+    pub accounts: Vec<VaultAccountResponse>,
+    pub paging: Option<Paging>,
+    pub previous_url: Option<String>,
+    pub next_url: Option<String>,
 }
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -205,7 +208,6 @@ pub struct OneTimeAddress {
     pub tag: Option<String>,
 }
 
-#[allow(non_camel_case_types)]
 #[derive(Debug, Serialize, Deserialize)]
 #[allow(clippy::upper_case_acronyms)]
 pub enum TransactionOperation {
@@ -219,7 +221,6 @@ pub enum TransactionOperation {
     REDEEM_FROM_COMPOUND,
 }
 
-#[allow(non_camel_case_types)]
 #[derive(Debug, Serialize, Deserialize)]
 #[allow(clippy::upper_case_acronyms)]
 pub enum PeerType {
@@ -240,7 +241,6 @@ pub struct CreateTransactionResponse {
     pub status: TransactionStatus,
 }
 
-#[allow(non_camel_case_types)]
 #[allow(clippy::upper_case_acronyms)]
 #[derive(Debug, Serialize, Deserialize)]
 pub enum TransactionStatus {
@@ -326,7 +326,6 @@ pub struct NCW {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(non_camel_case_types)]
 pub enum ChainId {
     MAINNET = 1,
     ROPSTEN = 3,
@@ -670,7 +669,6 @@ impl Asset {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum RawMessageType {
     EIP712,
-    #[allow(non_camel_case_types)]
     ETH_MESSAGE,
 }
 
@@ -684,6 +682,7 @@ impl RawMessageType {
     }
 }
 
+#[allow(clippy::upper_case_acronyms)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum FeeLevel {
     HIGH,
@@ -707,14 +706,13 @@ pub struct FireblocksProviderConfig {
     // Mandatory fields
     pub api_key: String,
     pub private_key: String,
-    pub chain_id: Option<ChainId>,
-    pub rpc_url: Option<String>,
+    pub api_base_url: ApiBaseUrl,
+    pub chain_id: ChainId,
+    pub rpc_url: String,
 
     // Optional fields
     #[serde(skip_serializing_if = "Option::is_none")]
     pub vault_account_ids: Option<Vec<String>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub api_base_url: Option<ApiBaseUrl>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub fallback_fee_level: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]

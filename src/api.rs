@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use uuid::Uuid;
 
-const EXPIRY: i64 = 30;
+pub const EXPIRY: i64 = 30;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -21,7 +21,7 @@ struct Claims {
 }
 
 // TODO: use zeroize/secrecy
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 /// Fireblocks Client
 pub struct FireblocksClient {
     /// RSA private key provided by fireblocks
@@ -44,12 +44,12 @@ impl std::fmt::Debug for FireblocksClient {
 
 impl FireblocksClient {
     /// Instantiates a new Fireblocks Client to access the API
-    pub async fn new(private_key: String, api_key: String, api_url: ApiBaseUrl) -> Result<Self> {
-        Ok(FireblocksClient {
+    pub fn new(private_key: String, api_key: String, api_url: ApiBaseUrl) -> Self {
+        FireblocksClient {
             private_key,
             api_key,
             api_url,
-        })
+        }
     }
 
     /// Signs a JWT to be attached in the Authorization header
@@ -121,20 +121,6 @@ impl FireblocksClient {
         let res = self.get_request(&path).await?;
         let vault: Vec<DepositAddressResponse> = serde_json::from_str(&res).unwrap();
         Ok(vault)
-    }
-
-    pub async fn get_utxo(
-        &self,
-        vault_id: &str,
-        asset_id: &str,
-    ) -> Result<Vec<UnspentInputsResponse>, Box<dyn std::error::Error>> {
-        let path = format!(
-            "/v1/vault/accounts/{}/{}/unspent_inputs",
-            vault_id, asset_id
-        );
-        let res = self.get_request(&path).await?;
-        let utxo: Vec<UnspentInputsResponse> = serde_json::from_str(&res).unwrap();
-        Ok(utxo)
     }
 
     pub async fn get_supported_assets(
@@ -286,4 +272,138 @@ impl FireblocksClient {
             ))?
         }
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tokio::fs;
+    use tokio::test;
+
+    async fn init_provider() -> FireblocksClient {
+        // Read API key from file
+        let api_key_content = fs::read_to_string("API_KEY").await.unwrap();
+        let api_key_trimmed = api_key_content.trim().to_string();
+
+        // Read private key from file
+        let private_key_content = fs::read_to_string("PRIVATE_KEY").await.unwrap();
+        let private_key_trimmed = private_key_content.trim().to_string();
+
+        // Use sandbox api base url
+        let fireblocks = FireblocksClient::new(
+            private_key_trimmed.to_string(),
+            api_key_trimmed.clone(),
+            ApiBaseUrl::Sandbox,
+        );
+
+        fireblocks
+    }
+
+    #[tokio::test]
+    async fn test_get_wallets() {
+        let fireblocks = init_provider().await;
+
+        match fireblocks.get_asset_wallets().await {
+            Ok(s) => {
+                println!("Test: {:#?}", s);
+            }
+            Err(e) => {
+                eprintln!("Error fetching wallet assets: {}", e);
+                assert!(false);
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn test_get_supported() {
+        let fireblocks = init_provider().await;
+
+        match fireblocks.get_supported_assets().await {
+            Ok(s) => {
+                println!("Supported Assets: {:#?}", s);
+            }
+
+            Err(e) => {
+                eprintln!("Error fetching supported assets: {}", e);
+                assert!(false);
+            }
+        }
+    }
+
+    #[test]
+    async fn test_create_vault() {
+        let fireblocks = init_provider().await;
+        let c = fireblocks.create_vault("Test", false, "2", true).await;
+        println!("{:#?}", c)
+    }
+
+    #[test]
+    async fn test_get_vaults() {
+        let fireblocks = init_provider().await;
+        // Test successful vault retrieval
+        match fireblocks.get_vaults().await {
+            Ok(response) => {
+                // Verify overall response structure
+                assert!(
+                    response.accounts.len() >= 2,
+                    "Expected at least 2 vault accounts"
+                );
+                assert!(
+                    response.paging.is_some(),
+                    "Expected paging information to be present"
+                );
+
+                // Verify test vault
+                let test_vault = response
+                    .accounts
+                    .iter()
+                    .find(|acc| acc.name == "Test")
+                    .expect("Test vault should exist");
+
+                assert_eq!(test_vault.customer_ref_id, Some("2".to_string()));
+            }
+            Err(e) => panic!("Failed to retrieve vaults: {}", e),
+        }
+    }
+
+    // TODO: This is dependent on the account used
+    // #[test]
+    // async fn test_get_vault_by_id() {
+    //     let fireblocks = init_provider().await;
+    //     let c = fireblocks.get_vault_by_id("2").await.unwrap();
+    //     println!("{:#?}", c)
+    // }
+
+    // TODO: This is dependent on the account used
+    // #[test]
+    // async fn test_get_vault_asset_by_id() {
+    //     let fireblocks = init_provider().await;
+    //     let c = fireblocks.get_vault_asset_by_id("0", "ETH").await.unwrap();
+    //     println!("{:#?}", c)
+    // }
+
+    #[test]
+    async fn test_get_deposit_addr() {
+        let fireblocks = init_provider().await;
+        let c = fireblocks.get_deposit_address("0", "ETH").await.unwrap();
+        println!("{:#?}", c)
+    }
+
+    // TODO: This is dependent on the account used
+    // #[test]
+    // async fn test_refresh() {
+    //     let fireblocks = init_provider().await;
+    //     let c = fireblocks
+    //         .refresh_vault(
+    //             "0",
+    //             "ETH",
+    //             &RequestOptions {
+    //                 idempotency_key: None,
+    //                 ncw: None,
+    //             },
+    //         )
+    //         .await
+    //         .unwrap();
+    //     println!("{:#?}", c)
+    // }
 }

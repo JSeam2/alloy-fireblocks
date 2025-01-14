@@ -8,7 +8,7 @@
 
 Clone the repository and run `cd alloy-fireblocks/ && cargo doc --open`
 
-## Add ethers-fireblocks to your repository
+## Add alloy-fireblocks to your repository
 
 ```toml
 [dependencies]
@@ -16,10 +16,10 @@ Clone the repository and run `cd alloy-fireblocks/ && cargo doc --open`
 alloy-fireblocks = { git = "https://github.com/jseam2/alloy-fireblocks" }
 ```
 
-To use the example, you must have the following env vars set:
+## Test
+To test, obtain an `API_KEY` and `PRIVATE_KEY` from Fireblocks and create the files respectively.
 
-```
-export FIREBLOCKS_API_SECRET_PATH=<path to your fireblocks.key>
-export FIREBLOCKS_API_KEY=<your fireblocks api key>
-export FIREBLOCKS_SOURCE_VAULT_ACCOUNT=<the vault id being used for sending txs>
+To run test with outputs
+```shell
+cargo test -- --nocapture
 ```
