@@ -47,39 +47,52 @@ impl FireblocksProvider {
         })
     }
 
-    // /// Initialize account addresses
-    // async fn init_accounts(&self) -> Result<(), TransportError> {
-    //     let mut accounts = self.accounts.write().await;
-    //     if !accounts.is_empty() {
-    //         return Ok(());
-    //     }
+    /// Get the user agent for program
+    pub fn get_user_agent(&self) -> String {
+        if let Some(custom_ua) = &self.config.user_agent {
+            format!(
+                "alloy-fireblocks/{} {}",
+                env!("CARGO_PKG_VERSION"),
+                custom_ua
+            )
+        } else {
+            format!("alloy-fireblocks/{}", env!("CARGO_PKG_VERSION"))
+        }
+    }
 
-    //     let vault_ids = if let Some(ids) = &self.config.vault_account_ids {
-    //         ids.clone()
-    //     } else {
-    //         // Fetch first 20 vault accounts if not specified
-    //         self.fireblocks
-    //             .get_vaults(None)
-    //             .await?
-    //             .accounts
-    //             .into_iter()
-    //             .map(|acc| acc.id.parse::<u64>().unwrap())
-    //             .collect()
-    //     };
+    /// Initialize account addresses
+    async fn init_accounts(&self) -> Result<(), TransportError> {
+        let mut accounts = self.accounts.write();
+        if !accounts.is_empty() {
+            return Ok(());
+        }
 
-    //     for vault_id in vault_ids {
-    //         let addresses = self
-    //             .fireblocks
-    //             .get_deposit_addresses(vault_id.to_string(), self.config.asset_id.clone())
-    //             .await?;
+        let vault_ids = if let Some(ids) = &self.config.vault_account_ids {
+            ids.clone()
+        } else {
+            // Fetch first 20 vault accounts if not specified
+            self.fireblocks
+                .get_vaults()
+                .await?
+                .accounts
+                .into_iter()
+                .map(|acc| acc.id.parse::<u64>().unwrap())
+                .collect()
+        };
 
-    //         if let Some(address) = addresses.first() {
-    //             accounts.insert(vault_id, Address::from_str(&address.address)?);
-    //         }
-    //     }
+        for vault_id in vault_ids {
+            let addresses = self
+                .fireblocks
+                .get_deposit_address(vault_id.to_string(), self.config.asset_id.clone())
+                .await?;
 
-    //     Ok(())
-    // }
+            if let Some(address) = addresses.first() {
+                accounts.insert(vault_id, Address::from_str(&address.address)?);
+            }
+        }
+
+        Ok(())
+    }
 
     // /// Create and submit a transaction via Fireblocks
     // async fn create_fireblocks_transaction(

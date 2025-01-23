@@ -713,28 +713,40 @@ pub struct FireblocksProviderConfig {
     // Optional fields
     #[serde(skip_serializing_if = "Option::is_none")]
     pub vault_account_ids: Option<Vec<String>>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub fallback_fee_level: Option<String>,
+    pub fallback_fee_level: Option<FeeLevel>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub note: Option<String>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub polling_interval: Option<u64>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub one_time_addresses_enabled: Option<bool>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub external_tx_id: Option<String>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub user_agent: Option<String>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub asset_id: Option<String>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub log_transaction_status_changes: Option<bool>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub log_requests_and_responses: Option<bool>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub enhanced_error_handling: Option<bool>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub gasless_gas_tank_vault_id: Option<u64>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub proxy_path: Option<String>,
 }
