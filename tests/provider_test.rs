@@ -2,26 +2,37 @@ use std::sync::Arc;
 
 use alloy_core::primitives::Address;
 use alloy_provider::ProviderBuilder;
+use alloy_signer::k256::elliptic_curve::PrimeCurveArithmetic;
 use alloy_transport::TransportError;
 
 use alloy_fireblocks::{
-    api::FireblocksClient, provider::FireblocksProvider, types::FireblocksProviderConfig,
+    api::FireblocksClient,
+    provider::FireblocksProvider,
+    types::{ApiBaseUrl, ChainId, FireblocksProviderConfig},
 };
+use tokio::fs;
 
 // Helper to create test configuration
-fn test_config(user_agent: Option<&str>) -> FireblocksProviderConfig {
-    FireblocksProviderConfig {
-        private_key: "test-key".into(),
-        api_key: "test-api-key".into(),
-        rpc_url: "http://localhost:8545".parse().unwrap(),
-        api_base_url: "https://api.fireblocks.io".into(),
-        user_agent: user_agent.map(Into::into),
-    }
+async fn test_config() -> FireblocksProviderConfig {
+    // Read API key from file
+    let api_key_content = fs::read_to_string("API_KEY").await.unwrap();
+    let api_key_trimmed = api_key_content.trim().to_string();
+
+    // Read private key from file
+    let private_key_content = fs::read_to_string("PRIVATE_KEY").await.unwrap();
+    let private_key_trimmed = private_key_content.trim().to_string();
+
+    FireblocksProviderConfig::new(
+        api_key_trimmed,
+        private_key_trimmed,
+        ApiBaseUrl::Sandbox,
+        ChainId::SEPOLIA,
+    )
 }
 
 #[tokio::test]
 async fn test_provider_creation() -> Result<(), TransportError> {
-    let config = test_config(None);
+    let config = test_config().await;
     let provider = FireblocksProvider::new(config).await?;
 
     assert!(Arc::strong_count(&provider.inner) == 1);
@@ -32,8 +43,8 @@ async fn test_provider_creation() -> Result<(), TransportError> {
 async fn test_user_agent() {
     let test_cases = vec![
         (
-            Some("custom-ua"),
-            format!("alloy-fireblocks/{} custom-ua", env!("CARGO_PKG_VERSION")),
+            Some("test"),
+            format!("alloy-fireblocks/{} test", env!("CARGO_PKG_VERSION")),
         ),
         (
             None,
@@ -41,21 +52,30 @@ async fn test_user_agent() {
         ),
     ];
 
-    for (input, expected) in test_cases {
-        let config = test_config(input);
-        let provider = FireblocksProvider::new(config).await.unwrap();
-        assert_eq!(provider.get_user_agent(), expected);
-    }
+    let config = test_config().await;
+    let provider = FireblocksProvider::new(config.clone()).await.unwrap();
+    assert_eq!(
+        provider.get_user_agent(),
+        format!("alloy-fireblocks/{}", env!("CARGO_PKG_VERSION"))
+    );
+
+    let config = config.with_user_agent("test".to_string());
+    let provider = FireblocksProvider::new(config).await.unwrap();
+    assert_eq!(
+        provider.get_user_agent(),
+        format!("alloy-fireblocks/{} test", env!("CARGO_PKG_VERSION"))
+    );
 }
 
 #[tokio::test]
 async fn test_account_caching() {
-    let config = test_config(None);
+    let config = test_config().await;
     let provider = FireblocksProvider::new(config).await.unwrap();
 
     // Test account caching functionality
     let account_id = 1;
-    let address = Address::parse_checksummed("0x52908400098527886E0F7030069857D2E4169EE7", None);
+    let address =
+        Address::parse_checksummed("0x52908400098527886E0F7030069857D2E4169EE7", None).unwrap();
 
     {
         let mut accounts = provider.accounts.write().unwrap();

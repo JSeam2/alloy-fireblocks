@@ -6,7 +6,7 @@ use alloy_transport::TransportError;
 
 use crate::{
     api::FireblocksClient,
-    types::{FireblocksProviderConfig, TransactionStatus},
+    types::{Asset, FireblocksProviderConfig, TransactionStatus},
 };
 
 /// A Web3 provider that integrates with Fireblocks custody
@@ -24,25 +24,31 @@ pub struct FireblocksProvider {
 impl FireblocksProvider {
     /// Create a new Fireblocks provider
     pub async fn new(config: FireblocksProviderConfig) -> Result<Self, TransportError> {
-        // Initialize the base RPC provider
+        // Clone only necessary fields for client initialization
+        let client_private_key = config.private_key.clone();
+        let client_api_key = config.api_key.clone();
+        let client_api_base_url = config.api_base_url.clone();
 
-        let inner = Arc::new(
-            ProviderBuilder::new()
-                .on_builtin(config.rpc_url.as_str())
-                .await?,
-        );
+        // Initialize RPC provider using direct config access
+        let inner = if let Some(rpc) = &config.rpc_url {
+            Arc::new(ProviderBuilder::new().on_builtin(rpc.as_str()).await?)
+        } else {
+            let asset = Asset::get_by_chain_id(&config.chain_id);
+            Arc::new(
+                ProviderBuilder::new()
+                    .on_builtin(asset.rpc_url.as_str())
+                    .await?,
+            )
+        };
 
-        // Initialize Fireblocks SDK
-        let fireblocks = FireblocksClient::new(
-            config.private_key.clone(),
-            config.api_key.clone(),
-            config.api_base_url.clone(),
-        );
+        // Initialize Fireblocks SDK with cloned values
+        let fireblocks =
+            FireblocksClient::new(client_private_key, client_api_key, client_api_base_url);
 
         Ok(Self {
             inner,
             fireblocks,
-            config,
+            config, // Original intact config
             accounts: Arc::new(RwLock::new(HashMap::new())),
         })
     }

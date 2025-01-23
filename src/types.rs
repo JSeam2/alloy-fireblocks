@@ -1,5 +1,7 @@
 #![allow(dead_code, non_camel_case_types)]
 
+use std::borrow::Borrow;
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -419,8 +421,9 @@ pub struct Asset {
 
 impl Asset {
     /// Get Asset via ChainId
-    pub fn get_by_chain_id(chain_id: ChainId) -> Self {
-        match chain_id {
+    pub fn get_by_chain_id<T: Borrow<ChainId>>(chain_id: T) -> Self {
+        let chain_id = chain_id.borrow();
+        match *chain_id {
             ChainId::MAINNET => Asset {
                 asset_id: "ETH".to_string(),
                 rpc_url: "https://cloudflare-eth.com".to_string(),
@@ -704,8 +707,10 @@ impl FeeLevel {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FireblocksProviderConfig {
     // Mandatory fields
+    // TODO: use zeroize/secrecy
     /// API Key provided by Fireblocks
     pub api_key: String,
+    // TODO: use zeroize/secrecy
     /// Private key provided by Fireblocks
     pub private_key: String,
     /// ApiBaseUrl enum
@@ -788,6 +793,16 @@ impl FireblocksProviderConfig {
             proxy_path: None,
         }
     }
+
+    /// Builder pattern for default asset id and RPC URL inferred on chain id
+    pub fn with_default_asset_id_and_rpc_url(mut self) -> Self {
+        let asset = Asset::get_by_chain_id(self.chain_id.clone());
+        self.rpc_url = Some(asset.rpc_url);
+        self.asset_id = Some(asset.asset_id);
+
+        self
+    }
+
     /// Builder pattern for rpc url
     pub fn with_rpc_url(mut self, rpc_url: String) -> Self {
         self.rpc_url = Some(rpc_url);
