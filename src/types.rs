@@ -704,13 +704,19 @@ impl FeeLevel {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FireblocksProviderConfig {
     // Mandatory fields
+    /// API Key provided by Fireblocks
     pub api_key: String,
+    /// Private key provided by Fireblocks
     pub private_key: String,
+    /// ApiBaseUrl enum
     pub api_base_url: ApiBaseUrl,
+    /// Chain Id
     pub chain_id: ChainId,
-    pub rpc_url: String,
 
     // Optional fields
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rpc_url: Option<String>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub vault_account_ids: Option<Vec<String>>,
 
@@ -749,6 +755,126 @@ pub struct FireblocksProviderConfig {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub proxy_path: Option<String>,
+}
+
+impl FireblocksProviderConfig {
+    pub fn new(
+        api_key: String,
+        private_key: String,
+        api_base_url: ApiBaseUrl,
+        chain_id: ChainId,
+    ) -> Self {
+        let asset = Asset::get_by_chain_id(chain_id.clone());
+        Self {
+            // Required fields
+            api_key,
+            private_key,
+            api_base_url,
+            chain_id,
+            // Optional fields with defaults
+            rpc_url: Some(asset.rpc_url),
+            vault_account_ids: None,
+            fallback_fee_level: Some(FeeLevel::MEDIUM),
+            note: Some("alloy-fireblocks Provider".into()),
+            polling_interval: Some(1000),
+            one_time_addresses_enabled: Some(true),
+            external_tx_id: None,
+            user_agent: None,
+            asset_id: Some(asset.asset_id),
+            log_transaction_status_changes: Some(false),
+            log_requests_and_responses: Some(false),
+            enhanced_error_handling: Some(true),
+            gasless_gas_tank_vault_id: None,
+            proxy_path: None,
+        }
+    }
+    /// Builder pattern for rpc url
+    pub fn with_rpc_url(mut self, rpc_url: String) -> Self {
+        self.rpc_url = Some(rpc_url);
+        self
+    }
+
+    /// Builder pattern for vault_account_ids
+    pub fn with_vault_account_ids(mut self, ids: Vec<String>) -> Self {
+        self.vault_account_ids = Some(ids);
+        self
+    }
+
+    /// Builder pattern for fallback fee level
+    pub fn with_fallback_fee_level(mut self, level: FeeLevel) -> Self {
+        self.fallback_fee_level = Some(level);
+        self
+    }
+
+    /// Builder pattern for note
+    pub fn with_note(mut self, note: String) -> Self {
+        self.note = Some(note);
+        self
+    }
+
+    /// Builder pattern for polling interval
+    pub fn with_polling_interval(mut self, polling_interval: u64) -> Self {
+        self.polling_interval = Some(polling_interval);
+        self
+    }
+
+    /// Builder pattern for one time addresses enabled
+    pub fn with_one_time_addresses_enabled(mut self, one_time_addresses_enabled: bool) -> Self {
+        self.one_time_addresses_enabled = Some(one_time_addresses_enabled);
+        self
+    }
+
+    /// Builder pattern for external tx id
+    pub fn with_external_tx_id(mut self, external_tx_id: String) -> Self {
+        self.external_tx_id = Some(external_tx_id);
+        self
+    }
+
+    /// Builder pattern for user agent
+    pub fn with_user_agent(mut self, user_agent: String) -> Self {
+        self.user_agent = Some(user_agent);
+        self
+    }
+
+    /// Builder pattern for asset id and RPC URL. Setting this will override defaults inferred from chain id
+    pub fn with_asset_id(mut self, asset_id: String, rpc_url: String) -> Self {
+        self.asset_id = Some(asset_id);
+        self.rpc_url = Some(rpc_url);
+        self
+    }
+
+    /// Builder pattern for log transaction status changes
+    pub fn with_log_transaction_status_changes(
+        mut self,
+        log_transaction_status_changes: bool,
+    ) -> Self {
+        self.log_transaction_status_changes = Some(log_transaction_status_changes);
+        self
+    }
+
+    /// Builder pattern for log requests and responses
+    pub fn with_log_requests_and_responses(mut self, log_requests_and_responses: bool) -> Self {
+        self.log_requests_and_responses = Some(log_requests_and_responses);
+        self
+    }
+
+    /// Builder pattern for enhanced error handling
+    pub fn with_enhanced_error_handling(mut self, enhanced_error_handling: bool) -> Self {
+        self.enhanced_error_handling = Some(enhanced_error_handling);
+        self
+    }
+
+    /// Builder pattern for gasless gas tank vault id
+    pub fn with_gasless_gas_tank_vault_id(mut self, gasless_gas_tank_vault_id: u64) -> Self {
+        self.gasless_gas_tank_vault_id = Some(gasless_gas_tank_vault_id);
+        self
+    }
+
+    /// Builder pattern for proxy path
+    pub fn with_proxy_path(mut self, proxy_path: String) -> Self {
+        self.proxy_path = Some(proxy_path);
+        self
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -5,7 +5,7 @@ edition = "2021"
 license = "MIT"
 readme = "README.md"
 description = """
-alloy-rs middleware and signer for Fireblocks' APIs
+alloy-rs EIP-1193 compatible provider
 """
 
 [dependencies]
