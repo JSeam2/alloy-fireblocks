@@ -2,6 +2,7 @@
 
 use std::{borrow::Borrow, num::ParseIntError};
 
+use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 
 use thiserror::Error;
@@ -29,10 +30,10 @@ pub struct VaultAccountResponse {
 
 impl VaultAccountResponse {
     /// Parse the string ID into u64
-    pub fn parse_id(&self) -> Result<u64, TypesError> {
+    pub fn parse_id(&self) -> Result<u64, FireblocksError> {
         self.id
             .parse()
-            .map_err(|e| TypesError::InvalidAccountIdError(self.id.clone(), e))
+            .map_err(|e| FireblocksError::InvalidAccountIdError(self.id.clone(), e))
     }
 }
 
@@ -927,9 +928,30 @@ impl std::fmt::Display for ProviderRpcError {
 }
 
 #[derive(Debug, Error)]
-pub enum TypesError {
+pub enum FireblocksError {
     #[error("Invalid account ID format '{0}': {1}")]
     InvalidAccountIdError(String, #[source] ParseIntError),
+
+    #[error("Asset ID must be populated before fetching vault account")]
+    MissingAssetIDError(),
+
+    #[error("Send Error: {0}")]
+    SendError(String),
+
+    #[error("GET Request Error: {0}, Status: {1}")]
+    GetError(String, StatusCode),
+
+    #[error("POST Request Error: {0}, Status: {1}")]
+    PostError(String, StatusCode),
+
+    #[error("JSON Error: {0}")]
+    JSONError(String),
+
+    #[error("Sign JWT Error: {0}")]
+    SignJWTError(String),
+
+    #[error("Header Error: {0}")]
+    HeaderError(String),
 
     #[error("Unknown error occurred")]
     UnknownError(#[from] Box<dyn std::error::Error + Send + Sync>),

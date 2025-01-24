@@ -1,6 +1,7 @@
 use crate::types::*;
 use chrono::Utc;
 use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
+use log::debug;
 use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_TYPE};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -82,22 +83,23 @@ impl FireblocksClient {
         Ok(token)
     }
 
-    pub async fn get_vaults(
-        &self,
-    ) -> Result<PagedVaultAccountsResponse, Box<dyn std::error::Error>> {
+    pub async fn get_vaults(&self) -> Result<PagedVaultAccountsResponse, FireblocksError> {
         let res = self.get_request("/v1/vault/accounts_paged").await?;
-        let vaults: PagedVaultAccountsResponse = serde_json::from_str(&res).unwrap();
-        print!("{:?}", vaults);
+
+        let vaults: PagedVaultAccountsResponse =
+            serde_json::from_str(&res).map_err(|e| FireblocksError::JSONError(e.to_string()))?;
+        debug!("{:?}", vaults);
         Ok(vaults)
     }
 
     pub async fn get_vault_by_id(
         &self,
         vault_id: &str,
-    ) -> Result<VaultAccountResponse, Box<dyn std::error::Error>> {
+    ) -> Result<VaultAccountResponse, FireblocksError> {
         let path = format!("/v1/vault/accounts/{}", vault_id);
         let res = self.get_request(&path).await?;
-        let vault: VaultAccountResponse = serde_json::from_str(&res).unwrap();
+        let vault: VaultAccountResponse =
+            serde_json::from_str(&res).map_err(|e| FireblocksError::JSONError(e.to_string()))?;
         Ok(vault)
     }
 
@@ -105,10 +107,11 @@ impl FireblocksClient {
         &self,
         vault_id: &str,
         asset_id: &str,
-    ) -> Result<AssetResponse, Box<dyn std::error::Error>> {
+    ) -> Result<AssetResponse, FireblocksError> {
         let path = format!("/v1/vault/accounts/{}/{}", vault_id, asset_id);
         let res = self.get_request(&path).await?;
-        let vault: AssetResponse = serde_json::from_str(&res).unwrap();
+        let vault: AssetResponse =
+            serde_json::from_str(&res).map_err(|e| FireblocksError::JSONError(e.to_string()))?;
         Ok(vault)
     }
 
@@ -116,37 +119,28 @@ impl FireblocksClient {
         &self,
         vault_id: &str,
         asset_id: &str,
-    ) -> Result<Vec<DepositAddressResponse>, Box<dyn std::error::Error>> {
+    ) -> Result<Vec<DepositAddressResponse>, FireblocksError> {
         let path = format!("/v1/vault/accounts/{}/{}/addresses", vault_id, asset_id);
         let res = self.get_request(&path).await?;
-        let vault: Vec<DepositAddressResponse> = serde_json::from_str(&res).unwrap();
+        let vault: Vec<DepositAddressResponse> =
+            serde_json::from_str(&res).map_err(|e| FireblocksError::JSONError(e.to_string()))?;
         Ok(vault)
     }
 
-    pub async fn get_supported_assets(
-        &self,
-    ) -> Result<Vec<AssetTypeResponse>, Box<dyn std::error::Error>> {
+    pub async fn get_supported_assets(&self) -> Result<Vec<AssetTypeResponse>, FireblocksError> {
         let res = self.get_request("/v1/supported_assets").await?;
         let trimmed_res = res.trim();
-        let result = serde_json::from_str::<Vec<AssetTypeResponse>>(trimmed_res);
+        let result = serde_json::from_str::<Vec<AssetTypeResponse>>(trimmed_res)
+            .map_err(|e| FireblocksError::JSONError(e.to_string()))?;
 
-        match result {
-            Ok(supported) => {
-                println!("Response:\n{:#?}", supported);
-                Ok(supported)
-            }
-            Err(e) => {
-                eprintln!("Failed to deserialize response: {:?}", trimmed_res);
-                eprintln!("Deserialization error: {}", e);
-                Err(Box::new(e))
-            }
-        }
+        debug!("Response:\n{:#?}", result);
+        Ok(result)
     }
 
     // TODO: add Filter GetAssetWalletsFilters
-    pub async fn get_asset_wallets(&self) -> Result<String, Box<dyn std::error::Error>> {
+    pub async fn get_asset_wallets(&self) -> Result<String, FireblocksError> {
         let res = self.get_request("/v1/vault/asset_wallets").await?;
-        println!("RAW JSON from Fireblocks API:\n {:#?}", res);
+        debug!("RAW JSON from Fireblocks API:\n {:#?}", res);
         // TODO: Serialize into Get AssetWalletResponse instead of just JSON
         // let assets: GetAssetWalletsResponse = serde_json::from_str(&res).unwrap();
         // print!("{:?}", assets);
@@ -159,12 +153,14 @@ impl FireblocksClient {
         vault_id: &str,
         asset_id: &str,
         request_opts: &RequestOptions,
-    ) -> Result<AssetResponse, Box<dyn std::error::Error>> {
+    ) -> Result<AssetResponse, FireblocksError> {
         let path = format!("/v1/vault/accounts/{vault_id}/{asset_id}/balance");
-        let json_args = serde_json::to_string(request_opts)?;
+        let json_args = serde_json::to_string(request_opts)
+            .map_err(|e| FireblocksError::JSONError(e.to_string()))?;
         let res = self.post_request(&path, &json_args).await?;
 
-        let refresh_res: AssetResponse = serde_json::from_str(&res)?;
+        let refresh_res: AssetResponse =
+            serde_json::from_str(&res).map_err(|e| FireblocksError::JSONError(e.to_string()))?;
         Ok(refresh_res)
     }
 
@@ -175,8 +171,8 @@ impl FireblocksClient {
         hidden_on_ui: bool,
         customer_ref_id: &str,
         auto_fuel: bool,
-    ) -> Result<VaultAccountResponse, Box<dyn std::error::Error>> {
-        println!("Creating Vault account");
+    ) -> Result<VaultAccountResponse, FireblocksError> {
+        debug!("Creating Vault account");
         let body = CreateVaultRequest {
             name: name.to_string(),
             hidden_on_ui,
@@ -184,10 +180,12 @@ impl FireblocksClient {
             auto_fuel,
         };
 
-        let json_args = serde_json::to_string(&body)?;
+        let json_args =
+            serde_json::to_string(&body).map_err(|e| FireblocksError::JSONError(e.to_string()))?;
         let res = self.post_request("/v1/vault/accounts", &json_args).await?;
 
-        let create_vault_res: VaultAccountResponse = serde_json::from_str(&res)?;
+        let create_vault_res: VaultAccountResponse =
+            serde_json::from_str(&res).map_err(|e| FireblocksError::JSONError(e.to_string()))?;
         Ok(create_vault_res)
     }
 
@@ -195,62 +193,79 @@ impl FireblocksClient {
     pub async fn create_tx(
         &self,
         tx_args: &TransactionArguments,
-    ) -> Result<CreateTransactionResponse, Box<dyn std::error::Error>> {
-        println!("Creating transaction with arguments: {:#?}", tx_args);
-        let json_args = serde_json::to_string(tx_args)?;
+    ) -> Result<CreateTransactionResponse, FireblocksError> {
+        debug!("Creating transaction with arguments: {:#?}", tx_args);
+        let json_args = serde_json::to_string(tx_args)
+            .map_err(|e| FireblocksError::JSONError(e.to_string()))?;
         let res = self.post_request("/v1/transactions", &json_args).await?;
 
-        let create_tx_response: CreateTransactionResponse = serde_json::from_str(&res)?;
-        println!("Create transaction response:\n{:#?}", create_tx_response);
+        let create_tx_response: CreateTransactionResponse =
+            serde_json::from_str(&res).map_err(|e| FireblocksError::JSONError(e.to_string()))?;
+        debug!("Create transaction response:\n{:#?}", create_tx_response);
         Ok(create_tx_response)
     }
 
     /// Helper function for GET requests
-    pub async fn get_request(&self, path: &str) -> Result<String, Box<dyn std::error::Error>> {
-        let token = self.sign_jwt(path, None)?;
+    pub async fn get_request(&self, path: &str) -> Result<String, FireblocksError> {
+        let token = self
+            .sign_jwt(path, None)
+            .map_err(|e| FireblocksError::SignJWTError(e.to_string()))?;
 
         let client = reqwest::Client::new();
         let mut headers = HeaderMap::new();
         headers.insert(
             AUTHORIZATION,
-            HeaderValue::from_str(&format!("Bearer {}", token))?,
+            HeaderValue::from_str(&format!("Bearer {}", token))
+                .map_err(|e| FireblocksError::HeaderError(e.to_string()))?,
         );
-        headers.insert("X-API-Key", HeaderValue::from_str(&self.api_key)?);
+        headers.insert(
+            "X-API-Key",
+            HeaderValue::from_str(&self.api_key)
+                .map_err(|e| FireblocksError::HeaderError(e.to_string()))?,
+        );
 
         // Make the GET request
         let response = client
             .get(format!("{}{}", self.api_url.value(), path)) // Use api_url here
             .headers(headers)
             .send()
-            .await?;
+            .await
+            .map_err(|e| FireblocksError::SendError(e.to_string()))?;
 
         // Check response status and return result
         if response.status().is_success() {
-            let response_text = response.text().await?;
+            let response_status_code = response.status();
+            let response_text = response
+                .text()
+                .await
+                .map_err(|e| FireblocksError::GetError(e.to_string(), response_status_code))?;
             Ok(response_text)
         } else {
-            Err(format!(
-                "GET Request failed with status: {}",
-                response.status()
-            ))?
+            Err(FireblocksError::GetError(
+                "GET Unsuccessful".to_string(),
+                response.status(),
+            ))
         }
     }
 
     /// Helper function for POST requests
-    pub async fn post_request(
-        &self,
-        path: &str,
-        body: &str,
-    ) -> Result<String, Box<dyn std::error::Error>> {
-        let token = self.sign_jwt(path, Some(body))?;
+    pub async fn post_request(&self, path: &str, body: &str) -> Result<String, FireblocksError> {
+        let token = self
+            .sign_jwt(path, Some(body))
+            .map_err(|e| FireblocksError::SignJWTError(e.to_string()))?;
 
         let client = reqwest::Client::new();
         let mut headers = HeaderMap::new();
         headers.insert(
             AUTHORIZATION,
-            HeaderValue::from_str(&format!("Bearer {}", token))?,
+            HeaderValue::from_str(&format!("Bearer {}", token))
+                .map_err(|e| FireblocksError::HeaderError(e.to_string()))?,
         );
-        headers.insert("X-API-Key", HeaderValue::from_str(&self.api_key)?);
+        headers.insert(
+            "X-API-Key",
+            HeaderValue::from_str(&self.api_key)
+                .map_err(|e| FireblocksError::HeaderError(e.to_string()))?,
+        );
 
         // Make the POST request
         let response = client
@@ -259,17 +274,22 @@ impl FireblocksClient {
             .header(CONTENT_TYPE, "application/json") // Set Content-Type header
             .body(body.to_string())
             .send()
-            .await?;
+            .await
+            .map_err(|e| FireblocksError::SendError(e.to_string()))?;
 
         // Check response status and return result
         if response.status().is_success() {
-            let response_text = response.text().await?;
+            let response_status_code = response.status();
+            let response_text = response
+                .text()
+                .await
+                .map_err(|e| FireblocksError::PostError(e.to_string(), response_status_code))?;
             Ok(response_text)
         } else {
-            Err(format!(
-                "POST Request failed with status: {}",
-                response.status()
-            ))?
+            Err(FireblocksError::PostError(
+                "POST Unsuccessful".to_string(),
+                response.status(),
+            ))
         }
     }
 }

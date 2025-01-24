@@ -6,7 +6,7 @@ use alloy_transport::TransportError;
 
 use crate::{
     api::FireblocksClient,
-    types::{Asset, FireblocksProviderConfig, TransactionStatus},
+    types::{Asset, FireblocksError, FireblocksProviderConfig, TransactionStatus},
 };
 
 /// A Web3 provider that integrates with Fireblocks custody
@@ -67,13 +67,13 @@ impl FireblocksProvider {
     }
 
     /// Get Vault accounts
-    pub async fn get_vault_accounts(&self) -> Result<Vec<u64>, Box<dyn std::error::Error>> {
+    pub async fn get_vault_accounts(&self) -> Result<Vec<u64>, FireblocksError> {
         // Ensure asset_id is populated
         let asset_id = self
             .config
             .asset_id
             .as_ref()
-            .ok_or("Asset ID must be populated before fetching vault accounts")?;
+            .ok_or(FireblocksError::MissingAssetIDError())?;
 
         // Get paged vault accounts
         let response = self.fireblocks.get_vaults().await?;
@@ -88,6 +88,9 @@ impl FireblocksProvider {
 
         Ok(account_ids)
     }
+
+    // /// Populate accounts, note that this should have been run during instantiation
+    // pub async fn populate_accounts(&self) -> Result<HashMap<u64, Address>, Box<dyn Error>> {}
 
     // /// Initialize account addresses
     // async fn init_accounts(&self) -> Result<(), TransportError> {
