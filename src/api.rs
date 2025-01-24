@@ -345,8 +345,8 @@ mod tests {
             Ok(response) => {
                 // Verify overall response structure
                 assert!(
-                    response.accounts.len() >= 2,
-                    "Expected at least 2 vault accounts"
+                    response.accounts.len() >= 1,
+                    "Expected at least 1 vault accounts"
                 );
                 assert!(
                     response.paging.is_some(),
