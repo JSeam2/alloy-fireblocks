@@ -366,13 +366,13 @@ mod tests {
         }
     }
 
-    // TODO: This is dependent on the account used
-    // #[test]
-    // async fn test_get_vault_by_id() {
-    //     let fireblocks = init_provider().await;
-    //     let c = fireblocks.get_vault_by_id("2").await.unwrap();
-    //     println!("{:#?}", c)
-    // }
+    #[test]
+    /// Test getting the default vault
+    async fn test_get_vault_by_id() {
+        let fireblocks = init_provider().await;
+        let c = fireblocks.get_vault_by_id("0").await.unwrap();
+        println!("{:#?}", c)
+    }
 
     // TODO: This is dependent on the account used
     // #[test]
