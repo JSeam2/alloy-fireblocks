@@ -1,16 +1,18 @@
 #![allow(dead_code, non_camel_case_types)]
 
-use std::borrow::Borrow;
+use std::{borrow::Borrow, num::ParseIntError};
 
 use serde::{Deserialize, Serialize};
+
+use thiserror::Error;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct VaultAccountPaginatedResponse {
-    accounts: Vec<VaultAccountResponse>,
-    paging: Paging,
-    previous_url: Option<String>,
-    next_url: Option<String>,
+    pub accounts: Vec<VaultAccountResponse>,
+    pub paging: Paging,
+    pub previous_url: Option<String>,
+    pub next_url: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -23,6 +25,15 @@ pub struct VaultAccountResponse {
     pub assets: Vec<AssetResponse>,
     pub customer_ref_id: Option<String>,
     pub auto_fuel: bool,
+}
+
+impl VaultAccountResponse {
+    /// Parse the string ID into u64
+    pub fn parse_id(&self) -> Result<u64, TypesError> {
+        self.id
+            .parse()
+            .map_err(|e| TypesError::InvalidAccountIdError(self.id.clone(), e))
+    }
 }
 
 #[allow(dead_code)]
@@ -76,20 +87,20 @@ pub struct AssetTypeResponse {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AssetResponse {
-    id: String,
-    total: String,
+    pub id: String,
+    pub total: String,
     /// DEPRECATED
-    balance: Option<String>,
+    pub balance: Option<String>,
     #[serde(rename = "lockedAmount")]
-    locked_amount: Option<String>,
-    available: Option<String>,
-    pending: Option<String>,
-    self_staked_cpu: Option<String>,
-    self_staked_network: Option<String>,
-    pending_refund_cpu: Option<String>,
-    pending_refund_network: Option<String>,
-    total_staked_cpu: Option<String>,
-    total_staked_network: Option<String>,
+    pub locked_amount: Option<String>,
+    pub available: Option<String>,
+    pub pending: Option<String>,
+    pub self_staked_cpu: Option<String>,
+    pub self_staked_network: Option<String>,
+    pub pending_refund_cpu: Option<String>,
+    pub pending_refund_network: Option<String>,
+    pub total_staked_cpu: Option<String>,
+    pub total_staked_network: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -913,4 +924,13 @@ impl std::fmt::Display for ProviderRpcError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "RPC Error {}: {}", self.code, self.message)
     }
+}
+
+#[derive(Debug, Error)]
+pub enum TypesError {
+    #[error("Invalid account ID format '{0}': {1}")]
+    InvalidAccountIdError(String, #[source] ParseIntError),
+
+    #[error("Unknown error occurred")]
+    UnknownError(#[from] Box<dyn std::error::Error + Send + Sync>),
 }

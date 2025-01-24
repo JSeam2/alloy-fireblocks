@@ -66,6 +66,29 @@ impl FireblocksProvider {
         }
     }
 
+    /// Get Vault accounts
+    pub async fn get_vault_accounts(&self) -> Result<Vec<u64>, Box<dyn std::error::Error>> {
+        // Ensure asset_id is populated
+        let asset_id = self
+            .config
+            .asset_id
+            .as_ref()
+            .ok_or("Asset ID must be populated before fetching vault accounts")?;
+
+        // Get paged vault accounts
+        let response = self.fireblocks.get_vaults().await?;
+
+        // Filter and parse accounts
+        let account_ids = response
+            .accounts
+            .into_iter()
+            .filter(|account| account.assets.iter().any(|asset| asset.id == *asset_id))
+            .map(|account| account.parse_id())
+            .collect::<Result<Vec<_>, _>>()?;
+
+        Ok(account_ids)
+    }
+
     // /// Initialize account addresses
     // async fn init_accounts(&self) -> Result<(), TransportError> {
     //     let mut accounts = self.accounts.write();

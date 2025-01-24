@@ -1,12 +1,9 @@
 use std::sync::Arc;
 
 use alloy_core::primitives::Address;
-use alloy_provider::ProviderBuilder;
-use alloy_signer::k256::elliptic_curve::PrimeCurveArithmetic;
 use alloy_transport::TransportError;
 
 use alloy_fireblocks::{
-    api::FireblocksClient,
     provider::FireblocksProvider,
     types::{ApiBaseUrl, ChainId, FireblocksProviderConfig},
 };
@@ -41,17 +38,6 @@ async fn test_provider_creation() -> Result<(), TransportError> {
 
 #[tokio::test]
 async fn test_user_agent() {
-    let test_cases = vec![
-        (
-            Some("test"),
-            format!("alloy-fireblocks/{} test", env!("CARGO_PKG_VERSION")),
-        ),
-        (
-            None,
-            format!("alloy-fireblocks/{}", env!("CARGO_PKG_VERSION")),
-        ),
-    ];
-
     let config = test_config().await;
     let provider = FireblocksProvider::new(config.clone()).await.unwrap();
     assert_eq!(
@@ -86,4 +72,23 @@ async fn test_account_caching() {
         let accounts = provider.accounts.read().unwrap();
         assert_eq!(accounts.get(&account_id), Some(&address));
     }
+}
+
+#[tokio::test]
+async fn test_get_vault_accounts() {
+    let config = test_config().await;
+    let provider = FireblocksProvider::new(config).await.unwrap();
+
+    let vault_accounts = provider.get_vault_accounts().await;
+
+    assert!(
+        vault_accounts.is_ok(),
+        "Should successfully fetch vault accounts"
+    );
+    let accounts = vault_accounts.unwrap();
+
+    assert!(
+        !accounts.is_empty(),
+        "Should find at least one vault account"
+    );
 }

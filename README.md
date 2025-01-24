@@ -17,9 +17,9 @@ alloy-fireblocks = { git = "https://github.com/jseam2/alloy-fireblocks" }
 ```
 
 ## Test
-To test, obtain an `API_KEY` and `PRIVATE_KEY` from Fireblocks and create the files respectively.
+To test, obtain an `API_KEY` and `PRIVATE_KEY` from Fireblocks and create the files respectively by remove `.example`.
 
 To run test with outputs
 ```shell
-cargo test -- --nocapture
+cargo nextest run --no-capture --locked
 ```
