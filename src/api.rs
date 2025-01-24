@@ -394,36 +394,43 @@ mod tests {
         println!("{:#?}", c)
     }
 
-    // TODO: This is dependent on the account used
-    // #[test]
-    // async fn test_get_vault_asset_by_id() {
-    //     let fireblocks = init_provider().await;
-    //     let c = fireblocks.get_vault_asset_by_id("0", "ETH").await.unwrap();
-    //     println!("{:#?}", c)
-    // }
+    #[test]
+    async fn test_get_vault_asset_by_id() {
+        let fireblocks = init_provider().await;
+        let c = fireblocks
+            // TODO: Take note of vault asset
+            .get_vault_asset_by_id("0", "ETH_TEST5")
+            .await
+            .unwrap();
+        println!("{:#?}", c)
+    }
 
     #[test]
     async fn test_get_deposit_addr() {
         let fireblocks = init_provider().await;
-        let c = fireblocks.get_deposit_address("0", "ETH").await.unwrap();
+        let c = fireblocks
+            // TODO: Take note of vault asset
+            .get_deposit_address("0", "ETH_TEST5")
+            .await
+            .unwrap();
         println!("{:#?}", c)
     }
 
-    // TODO: This is dependent on the account used
-    // #[test]
-    // async fn test_refresh() {
-    //     let fireblocks = init_provider().await;
-    //     let c = fireblocks
-    //         .refresh_vault(
-    //             "0",
-    //             "ETH",
-    //             &RequestOptions {
-    //                 idempotency_key: None,
-    //                 ncw: None,
-    //             },
-    //         )
-    //         .await
-    //         .unwrap();
-    //     println!("{:#?}", c)
-    // }
+    #[test]
+    async fn test_refresh() {
+        let fireblocks = init_provider().await;
+        let c = fireblocks
+            .refresh_vault(
+                "0",
+                // TODO: Take note of vault asset
+                "ETH_TEST5",
+                &RequestOptions {
+                    idempotency_key: None,
+                    ncw: None,
+                },
+            )
+            .await
+            .unwrap();
+        println!("{:#?}", c)
+    }
 }
