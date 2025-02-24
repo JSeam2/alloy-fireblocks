@@ -1,8 +1,11 @@
-use std::sync::{Arc, RwLock};
+use std::{
+    collections::HashMap,
+    sync::{Arc, RwLock},
+};
 
-use alloy_core::primitives::{map::HashMap, Address};
+use alloy_core::primitives::Address;
 use alloy_provider::{Provider, ProviderBuilder};
-use alloy_transport::TransportError;
+use alloy_transport::{TransportError, TransportErrorKind};
 
 use crate::{
     api::FireblocksClient,
@@ -22,6 +25,7 @@ pub struct FireblocksProvider {
 }
 
 impl FireblocksProvider {
+    /// Create a new Fireblocks provider
     /// Create a new Fireblocks provider
     pub async fn new(config: FireblocksProviderConfig) -> Result<Self, TransportError> {
         // Clone only necessary fields for client initialization
@@ -45,12 +49,20 @@ impl FireblocksProvider {
         let fireblocks =
             FireblocksClient::new(client_private_key, client_api_key, client_api_base_url);
 
-        Ok(Self {
+        // Create the provider with empty accounts
+        let provider = Self {
             inner,
             fireblocks,
             config, // Original intact config
             accounts: Arc::new(RwLock::new(HashMap::new())),
-        })
+        };
+
+        provider
+            .populate_accounts()
+            .await
+            .map_err(|_e| TransportErrorKind::custom_str("Failed to populate accounts"))?;
+
+        Ok(provider)
     }
 
     /// Get the user agent for program
@@ -76,6 +88,7 @@ impl FireblocksProvider {
             .ok_or(FireblocksError::MissingAssetIDError())?;
 
         // Get paged vault accounts
+        // TODO: deal with pagination
         let response = self.fireblocks.get_vaults().await?;
 
         // Filter and parse accounts
@@ -89,8 +102,52 @@ impl FireblocksProvider {
         Ok(account_ids)
     }
 
-    // /// Populate accounts, note that this should have been run during instantiation
-    // pub async fn populate_accounts(&self) -> Result<HashMap<u64, Address>, Box<dyn Error>> {}
+    /// Populate accounts with deposit addresses from Fireblocks
+    pub async fn populate_accounts(&self) -> Result<(), FireblocksError> {
+        // Get vault accounts from config or fetch them
+        let vault_accounts = match &self.config.vault_account_ids {
+            Some(ids) => ids.clone(),
+            None => self.get_vault_accounts().await?,
+        };
+
+        // Get asset id from config
+        let asset_id = self
+            .config
+            .asset_id
+            .clone()
+            .ok_or(FireblocksError::MissingAssetIDError())?;
+
+        // Process each vault account
+        let mut populated_accounts = HashMap::new();
+        for vault_id in vault_accounts {
+            // Get deposit addresses for this vault
+            let deposit_addresses = self
+                .fireblocks
+                .get_deposit_address(&vault_id.to_string(), &asset_id)
+                .await?;
+
+            // If addresses exist, use the first one
+            if let Some(first_address) = deposit_addresses.first() {
+                // Parse the address string to Address type
+                let address = first_address.address.parse::<Address>().map_err(|_| {
+                    FireblocksError::InvalidAddressError(first_address.address.clone())
+                })?;
+
+                // Add to our map
+                populated_accounts.insert(vault_id, address);
+            }
+        }
+
+        // Update the shared accounts map
+        if let Ok(mut accounts) = self.accounts.write() {
+            accounts.extend(populated_accounts);
+            Ok(())
+        } else {
+            Err(FireblocksError::SynchronizationError(
+                "Failed to acquire write lock".to_string(),
+            ))
+        }
+    }
 
     // /// Initialize account addresses
     // async fn init_accounts(&self) -> Result<(), TransportError> {

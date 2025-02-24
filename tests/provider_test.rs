@@ -92,3 +92,26 @@ async fn test_get_vault_accounts() {
         "Should find at least one vault account"
     );
 }
+
+#[tokio::test]
+async fn test_populate_accounts() {
+    // Create config with auto_populate_accounts set to false initially
+    let config = test_config().await;
+
+    // provider should populate accounts by default
+    let provider = FireblocksProvider::new(config.clone()).await.unwrap();
+
+    let accounts = provider.accounts.read().unwrap();
+    assert!(
+        !accounts.is_empty(),
+        "Accounts should be populated after initializing FireblocksProvider"
+    );
+
+    // Log the number of accounts found
+    println!("Found {} accounts after population", accounts.len());
+
+    // Optionally log each account for debugging
+    for (vault_id, address) in accounts.iter() {
+        println!("Vault ID: {}, Address: {}", vault_id, address);
+    }
+}

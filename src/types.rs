@@ -735,7 +735,7 @@ pub struct FireblocksProviderConfig {
     pub rpc_url: Option<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub vault_account_ids: Option<Vec<String>>,
+    pub vault_account_ids: Option<Vec<u64>>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub fallback_fee_level: Option<FeeLevel>,
@@ -792,7 +792,7 @@ impl FireblocksProviderConfig {
             rpc_url: Some(asset.rpc_url),
             vault_account_ids: None,
             fallback_fee_level: Some(FeeLevel::MEDIUM),
-            note: Some("alloy-fireblocks Provider".into()),
+            note: Some("alloy-fireblocks provider".into()),
             polling_interval: Some(1000),
             one_time_addresses_enabled: Some(true),
             external_tx_id: None,
@@ -822,7 +822,7 @@ impl FireblocksProviderConfig {
     }
 
     /// Builder pattern for vault_account_ids
-    pub fn with_vault_account_ids(mut self, ids: Vec<String>) -> Self {
+    pub fn with_vault_account_ids(mut self, ids: Vec<u64>) -> Self {
         self.vault_account_ids = Some(ids);
         self
     }
@@ -935,6 +935,9 @@ pub enum FireblocksError {
     #[error("Asset ID must be populated before fetching vault account")]
     MissingAssetIDError(),
 
+    #[error("Invalid address: {0}")]
+    InvalidAddressError(String),
+
     #[error("Send Error: {0}")]
     SendError(String),
 
@@ -952,6 +955,15 @@ pub enum FireblocksError {
 
     #[error("Header Error: {0}")]
     HeaderError(String),
+
+    #[error("Synchronization Error: {0}")]
+    SynchronizationError(String),
+
+    #[error("Failed to populate accounts")]
+    FailedToPopulateAccountsError(),
+
+    #[error("Transport Error: {0}")]
+    TransportError(String),
 
     #[error("Unknown error occurred")]
     UnknownError(#[from] Box<dyn std::error::Error + Send + Sync>),
